@@ -2,30 +2,40 @@ function love.load()
   WIDTH, HEIGHT = love.graphics.getDimensions()
   my_func = make_function() -- string
  -- SCALE = 0.0015
-  SCALE = 350
-  STEP = 10 / 10
-  t = -1.2
+  SCALE = 450
+  STEP = 1 / 10
+  t = - 0.8
   -- possibly unnecessary global
-  visible_points_total = 0
-  history = {{}, {}, {}, {}, {}}
+  history = {}
   n_points = 200
+  constant_time = false
+  --love.graphics.setBackgroundColor(0.05, 0.15, 0.25, 0.50)
+  canv1 = love.graphics.newCanvas()
+  canvbg = love.graphics.newCanvas()
+  love.graphics.setCanvas(canvbg)
+  love.graphics.clear(0, 0, 0, 0.05)
+  love.graphics.setCanvas()
 end
 
 function love.keypressed(key)
   if love.keyboard.isDown('t') then
-    t = -1.2
+    t = -0.8
   elseif love.keyboard.isDown('r') then
     my_func = make_function()
-    t = -1.2
+    t = -0.8
   end
 end
 
 function love.update(dt)
-  love.timer.sleep(1/200)
+  --love.timer.sleep(1/200)
   table.insert(history, 1, solve(my_func, n_points))
-  if #history > 5 then table.remove(history) end
+  if #history > 30 then table.remove(history) end
   -- update time based on interest index
-  local interest = interest_index(history[2], history[1])
+  --local interest = interest_index(history[2], history[1])
+  interest = interest2(history)
+  if constant_time == true then
+    interest = 1
+  end
   local next_t = t + (dt * STEP * interest)
   if love.keyboard.isDown('z') then
     t = t + (30 * dt * STEP * interest)
@@ -39,23 +49,55 @@ function love.update(dt)
   -- do additional testing for new dots "blinking in" here
 end
 
+function draw_text()
+  love.graphics.setColor(1, 1, 1)
+  local seperator = string.find(my_func, ',')
+  local equation_1 = string.sub(my_func, 9, seperator)
+  local equation_2 = string.sub(my_func, seperator + 2, -2)
+  local interest_val = string.sub(tostring(interest), 1, 4)
+  local t_text = string.sub(tostring(t), 1, 5)
+  if t > 0 then
+    t_text = string.sub(tostring(t), 1, 4)
+  end
+  love.graphics.print('x\' = ' .. equation_1, 60, 45, 0, 4, 4)
+  love.graphics.print('y\' = ' .. equation_2, 60, 100, 0, 4, 4)
+  love.graphics.print('t = '.. t_text, 60, 180, 0, 4, 4)
+  love.graphics.print("interest " .. interest_val, 60, 300, 0, 4, 4)
+end
+
+
 function love.draw()
+
+  love.graphics.setBlendMode("alpha", "alphamultiply")
+  love.graphics.setCanvas(canv1)
+  love.graphics.draw(canvbg)
+  love.graphics.setBlendMode("add", "premultiplied")
+
   local length = #history
   local limit = #history[length]
-  love.graphics.setColor(1, 1, 1)
-  love.graphics.print("time: " .. tostring(t))
+
   for i=1, limit do
-    local p = plot_point(history[length - 3][i])
-    local q = plot_point(history[1][i])
+    local p = plot_point(history[1][i])
+    --local q = plot_point(history[2][i])
     --TODO avoid drawing lines off screen
-    love.graphics.setColor(lerp_colour(i))
+    love.graphics.setColor(unique_colour(i))
+    --love.graphics.setColor(1, 1, 1)
     if love.keyboard.isDown('q') then
-      love.graphics.setLineWidth(3)
-      love.graphics.line(p[1], p[2], q[1], q[2])
+      love.graphics.setLineWidth(2)
+      --love.graphics.line(p[1], p[2], q[1], q[2])
     end
-    love.graphics.circle("fill", p[1], p[2], 3.5)
+    love.graphics.circle("fill", p[1], p[2], 5.0)
   end
 
+  love.graphics.setColor(1, 1, 1)
+
+  love.graphics.setBlendMode("alpha", "alphamultiply")
+  --love.graphics.setBlendMode("lighten", "premultiplied")
+  love.graphics.setCanvas() -- send focus to the screen
+  love.graphics.draw(canv1)
+  --
+  love.graphics.setBlendMode("alpha", "alphamultiply")
+  draw_text()
 end
 
 function custom_solve(func, time, number)
@@ -122,48 +164,80 @@ function speed_fix(history)
   --]]
   --for p in history[1] do
   --end
+
+  local tally = 0
+  for _, p in ipairs(history[1]) do
+    if is_on_screen(p) then
+      tally = tally + 1
+    end
+  end
+  local adjustment = 1
+  if tally == 0 then
+    adjustment = 0.01
+  else
+    desiredspeed = 200 --pixels per second
+  end
+
   return nil
 end
 
+function interest2(history)
+  local tally = 0
 
-function interest_index(old_points, new_points)
-  --[[ does this function garauntee a working output?
-  speed is typically between .01 and 2
-  maybe we should use seperate slow factors for speed
-  and for number of dots.
+  if #history < 2 then
+    --tally points on screen
+    return 1
+  end
 
-  maybe use max speed instead of average speed?
-  --]]
-  local new = {}
-  local old = {}
-  local dists = {}
-  for i=1, #old_points do
-    --print("old_points[i] : new_points[i]", old_points[i], new_points[i])
-    if is_on_screen(old_points[i]) and is_on_screen(new_points[i]) then
-      table.insert(new, new_points[i])
-      table.insert(old, old_points[i])
+  local on_screen = {}
+  local last_frame = {}
+  for index, point in ipairs(history[1]) do
+    if is_on_screen(point) then
+      tally = tally + 1
+      on_screen[index] = point
+      last_frame[index] = history[2][i]
     end
   end
-  local sum = 0
-  for i=1, #new do
-    dists[i] = distance(old[i], new[i])
-    sum = sum + dists[i]
-  end
-  visible_points_total = #new -- visible_points_total is now accurate
-  avg_distance_moved = sum / visible_points_total
-  local index =
-      (math.max(0.1, (n_points - visible_points_total)) / n_points) *
-      (math.max(0.1, 15 / greatest(dists)))
 
-  return math.min(10, index)
-end
-
-function greatest(tbl)
-  local g = tbl[1]
-  for i=1, #tbl do
-    if tbl[i] > g then g = tbl[i] end
+  count_multiplier = math.max((600 - tally) / 500, 0.88)
+  distances = {}
+  biggest_dist = 0
+  for i, p in pairs(on_screen) do
+    q = history[2][i]
+    d = distance(p, q)
+    table.insert(distances, d)
+    biggest_dist = (d < biggest_dist) and biggest_dist or d
   end
-  return g or 0
+
+  local speed_fix = 1
+  if biggest_dist > 15 then
+    speed_fix = (15 / biggest_dist)
+    return speed_fix * count_multiplier
+  end
+
+  local area_factor = 1
+  local min_x, min_y = WIDTH, WIDTH
+  local max_x, max_y = 0, 0
+  local x_accum, y_accum = 0, 0
+  for i, p in pairs(on_screen) do
+    local screen_point = plot_point(p)
+    x_accum = x_accum + p[1]
+    y_accum = y_accum + p[2]
+    min_x = (min_x < p[1]) and min_x or p[1]
+    min_y = (min_y < p[2]) and min_y or p[2]
+    max_x = (max_x > p[1]) and max_x or p[1]
+    max_y = (max_y > p[2]) and max_y or p[2]
+  end
+  local mid_point = {x_accum / #on_screen, y_accum / #on_screen}
+  local bbox = {min_x, min_y, max_x, max_y}
+  local dx = math.max(max_x - min_x, 1)
+  local dy = math.max(max_y - min_y, 1)
+  local area = dx * dy
+  local theo_max = math.sqrt(WIDTH * HEIGHT)
+  local area_factor = theo_max / math.sqrt(area)
+  local adjusted_area_factor = math.max((1.4 * area_factor) / theo_max, 0.4)
+
+  return speed_fix * count_multiplier * adjusted_area_factor
 end
 
 function plot_point(q)
@@ -194,6 +268,41 @@ function d4_string(c, cc) -- int, string, table -> string
   return ss[love.math.random(1, 4)]
 end
 
+function lerp_colour(n)
+  local grads = n_points
+
+  local red = n / grads
+  local green = 0.75 - (0.5 * red)
+  local blue = 0.2 + 0.8 * red
+  return {red, green, blue}
+end
+
+function unique_colour(i) -- i <= 1000
+  local grad = 29.5
+  local r, g, b = HSV((i * grad) % 365, 100, 100)
+  --print("r, g, b, i", r, g, b, i)
+  return {r / 255, g / 255, b / 255}
+end
+
+-- Converts HSV to RGB. (input and output range: 0 - 255)
+-- sourced from https://love2d.org/wiki/HSV_color
+ 
+function HSV(h, s, v)
+  --print("HSV func: h =", h)
+  if s <= 0 then return v,v,v end
+  h, s, v = h/256*6, s/255, v/255
+  local c = v*s
+  local x = (1-math.abs((h%2)-1))*c
+  local m,r,g,b = (v-c), 0,0,0
+  if h < 1     then r,g,b = c,x,0
+  elseif h < 2 then r,g,b = x,c,0
+  elseif h < 3 then r,g,b = 0,c,x
+  elseif h < 4 then r,g,b = 0,x,c
+  elseif h < 5 then r,g,b = x,0,c
+  else              r,g,b = c,0,x
+  end return (r+m)*255,(g+m)*255,(b+m)*255
+end
+
 function make_function()
   local z = '0'
   local rules = {}
@@ -218,15 +327,5 @@ function make_function()
   --local func = 'return {x*t - (x^2 + t^2 + y*t + x), -x^2 + t^2 + x*t - x - y}'
   print("my_func", func)
   return func
-
 end
 
-
-function lerp_colour(n)
-  local grads = n_points
-
-  local red = n / grads
-  local green = 0.5 - (0.5 * red)
-  local blue = 0.2 + 0.8 * red
-  return {red, green, blue}
-end
