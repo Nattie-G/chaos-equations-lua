@@ -2,12 +2,15 @@
 simple clone of hackerpoet's chaos equations https://github.com/HackerPoet/Chaos-Equations  
 written in lua and love2d the entire program is only about 300 lines of code  
 
-# install/running  
+## install/running  
 install love2d from their website https://love2d.org/  
 before running open up conf.lua and set the window size to something reasonable for your screen  
 some options can be set in the options = {} section of main.lua  
 
-clone this repo and run ` love . ` from a terminal inside the main directory  
+clone this repo, cd into it and execute love in the folder  
+`git clone https://github.com/Nattie-G/chaos-equations-lua.git`  
+`cd chaos-equations-lua`  
+`love .`  
 
 ## controls  
 
@@ -16,7 +19,7 @@ x (slow) slow-forward: go slower (mulitplier configurable in options)
 c (rewind)    rewind: hold c down to play the visualisation backwards  
 r (random)  equation: generate a new random equation and reset t  
 t (time)  reset time: reset t to -1.2  
-mouse wheel  scale  
+mouse wheel    scale: change the scale the equation is shown at
 
 ## options  
 trails:     true/false  whether to display a trail behind each point  
