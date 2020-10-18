@@ -100,17 +100,19 @@ function draw_text()
   local equation_2 = string.sub(my_func, seperator + 2, -2)
   local interest_val = string.sub(tostring(interest), 1, 4)
   local speed_factor = string.sub(tostring(dynamic_speed_factor), 1, 4)
+  local speed_text = string.sub(tostring(dynamic_speed_factor * interest), 1, 3)
   local t_text = string.sub(tostring(t), 1, 5)
   if t > 0 then
     t_text = string.sub(tostring(t), 1, 4)
   end
-  love.graphics.print('x\' = ' .. equation_1, 60, 45, 0, 4, 4)
-  love.graphics.print('y\' = ' .. equation_2, 60, 100, 0, 4, 4)
-  love.graphics.print('t = '.. t_text, 60, 180, 0, 4, 4)
-  love.graphics.print("interest " .. interest_val, 60, 300, 0, 4, 4)
-  love.graphics.print("dynamic_speed_factor " .. speed_factor, 60, 365, 0, 4, 4)
+  love.graphics.print('x\' = ' .. equation_1, 60, 45, 0, 3)
+  love.graphics.print('y\' = ' .. equation_2, 60, 100, 0, 3)
+  love.graphics.print('t = '.. t_text, 60, 180, 0, 3, 3)
+  love.graphics.print("scale " .. tostring(SCALE) .. "x", 450, 180, 0, 3)
+  love.graphics.print("speed " .. speed_text, 60, 250, 0, 3)
+  --love.graphics.print("interest " .. interest_val, 60, 250, 0, 3)
+  --love.graphics.print("dynamic_speed_factor " .. speed_factor, 60, 365, 0, 3)
 
-  love.graphics.print("scale " .. tostring(SCALE) .. "x", 500, 180, 0, 4, 4)
 end
 
 
