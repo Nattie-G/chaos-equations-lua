@@ -1,0 +1,27 @@
+  --[[  ideas for fixing playback speed
+  1. look 10 frames ahead, identify any "jumps," fix "keyframes"
+  and smoothe out speed transitions.
+  2. if these N frames don't have high "interest" or high speed
+  movement, adjust the step upwards
+  3. In the case of sufficiently low-interest stetches, conduct
+  an extended search to identify the next "hotspot" and smoothe
+  fast-forward to there
+
+
+  1. consider the whole period from -2 < t < 2 at a fine scale
+  2. identify "hot," "cold" and "dead" stretches
+  3. identify appropriate speed curve for each hot spot
+  4. optimise each hot-spot's keyframes and fix pop-in?
+  5. arrange "frames" as a table of t-values
+    (reverse play order for better efficiency)
+  6. generate "in-between" or skip existing frames based on user interaction
+
+
+  1. just rewrite the "interest function" to be better
+  2. clamp speed more aggressively where appropriate
+  3. use rolling interest value that updates each frame?
+
+
+
+things to do before release
+- support resizing

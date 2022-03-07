@@ -1,58 +1,133 @@
+local slab = require 'Slab'
+options = { trails      = true, colour      = true,
+            number      = 200 , step        = 5/100,
+            zoom_speed  = 10  , slow_speed  = 0.2 ,
+            point_size  = 2   , show_text   = true,
+            scale_factor = 1.0,
+            interest_scaling  = true,
+            dynamic_scaling   = true,
+          }
+
 function love.load()
-  WIDTH, HEIGHT = love.graphics.getDimensions()
-  SCALE = 400
+  window_width, window_height = best_window_size()
+  WIDTH  = window_width  / options.scale_factor
+  HEIGHT = window_height / options.scale_factor
+  love.window.setMode(best_window_size())
+
+  text_fnt, slab_fnt = make_fonts()
+  slab.Initialize()
+  slab.PushFont(slab_fnt)
+
+  cam_x = 0
+  cam_y = 0
+  mouse_x, mouse_y = love.mouse.getPosition()
+  mouse_pressed = false
+
+  SCALE = 300
   t = -1.2
+  func_history = {}
   my_func = make_function()
   history = {}
-  --on_screen = {}
   tally = 0
-  canv1 = love.graphics.newCanvas()
-  canvbg = love.graphics.newCanvas()
+  canv1 = love.graphics.newCanvas(WIDTH, HEIGHT)
+  canvbg = love.graphics.newCanvas(WIDTH, HEIGHT)
   love.graphics.setCanvas(canvbg)
   love.graphics.clear(0, 0, 0, 0.048)
   love.graphics.setCanvas()
   PAUSED = false
   dynamic_speed_factor = 1.0
-  -- you can edit these!
-  options = { trails      = true, colour      = true,
-              number      = 200 , step        = 1/20,
-              zoom_speed  = 10  , slow_speed  = 0.2 ,
-              point_size  = 2   , show_text   = true,
-              interest_scaling  = true,
-              dynamic_scaling   = true
-            }
 end
 
-function change_function()
-  my_func = make_function()
+function best_window_size()
+  local screen_width, screen_height = love.window.getDesktopDimensions()
+  return screen_width - 200, screen_height - 200
+  --return 1400, 900
+end
+
+function make_fonts()
+  local s1, s2
+  if window_width < 1200 then
+    s1 = 25
+    s2 = 15
+  elseif window_width < 1400 then
+    s1 = 30
+    s2 = 20
+  elseif window_width < 1600 then
+    s1 = 35
+    s2 = 25
+  elseif window_width < 2200 then
+    s1 = 40
+    s2 = 30
+  else
+    s1 = 50
+    s2 = 40
+  end
+  local fnt1 = love.graphics.newFont('Roboto-Regular.ttf', s1)
+  local fnt2 = love.graphics.newFont('Raleway-VariableFont_wght.ttf', s2)
+  return fnt1, fnt2
+end
+
+function change_function(func)
+  my_func = func
   t = -1.2
   dynamic_speed_factor = 1
+  cam_x = 0
+  cam_y = 0
 end
 
 function love.keypressed(key)
   if key == 't' then
     t = -1.2
     dynamic_speed_factor = 1
-  elseif key == 'r' then
-    change_function()
+  elseif key == 'b' and #func_history > 1 then
+    table.remove(func_history)
+    change_function(func_history[#func_history])
+  elseif key == 'n' then
+    change_function(make_function())
   elseif key == 'p' then
     PAUSED = not PAUSED
+  elseif key == 'space' then
+    cam_x = 0
+    cam_y = 0
   end
 end
 
 -- resizing doesn't quite work properly
 function love.resize(w, h)
-  WIDTH, HEIGHT = w, h
+  WIDTH  = w  / options.scale_factor
+  HEIGHT = h / options.scale_factor
 end
 
 -- adjust the scale of the graph with the mouse wheel
 function love.wheelmoved(x, y)
-  SCALE = math.max(SCALE + (y * 50), 0)
+  SCALE = math.max(SCALE + (y * 25), 1)
+  if SCALE % 5 == 1 and SCALE > 1 then
+    SCALE = SCALE - 1
+  end
 end
 
+function drag_screen()
+  if love.mouse.isDown(2) then
+    if mouse_pressed then
+      cam_x = cam_x + (love.mouse.getX() - mouse_x)
+      cam_y = cam_y + (love.mouse.getY() - mouse_y)
+      mouse_x, mouse_y = love.mouse.getPosition()
+    else
+      mouse_pressed = true
+      mouse_x, mouse_y = love.mouse.getPosition()
+    end
+  else
+    mouse_pressed = false
+    mouse_x, mouse_y = love.mouse.getPosition()
+  end
+end
 
 function love.update(dt)
+  slab.Update(dt)
+  create_options_window()
   love.timer.sleep(1/120)
+  drag_screen()
+
   if PAUSED then
     return
   end
@@ -86,7 +161,7 @@ function love.update(dt)
   t = t + (dt * options.step * dynamic_speed_factor * key_adjustment)
 
   if (t > 1.2) and interest >= 1 then
-    change_function()
+    change_function(make_function())
   end
 end
 
@@ -94,6 +169,7 @@ function draw_text()
   if not options.show_text then
     return
   end
+  love.graphics.setFont(text_fnt)
   love.graphics.setColor(1, 1, 1)
   local seperator = string.find(my_func, ',')
   local equation_1 = string.sub(my_func, 9, seperator)
@@ -105,29 +181,75 @@ function draw_text()
   if t > 0 then
     t_text = string.sub(tostring(t), 1, 4)
   end
-  love.graphics.print('x\' = ' .. equation_1, 60, 45, 0, 3)
-  love.graphics.print('y\' = ' .. equation_2, 60, 100, 0, 3)
-  love.graphics.print('t = '.. t_text, 60, 180, 0, 3, 3)
-  love.graphics.print("scale " .. tostring(SCALE) .. "x", 450, 180, 0, 3)
-  love.graphics.print("speed " .. speed_text, 60, 250, 0, 3)
-  --love.graphics.print("interest " .. interest_val, 60, 250, 0, 3)
-  --love.graphics.print("dynamic_speed_factor " .. speed_factor, 60, 365, 0, 3)
-
+  love.graphics.print('x\' = ' .. equation_1, 60, 45, 0, 1)
+  love.graphics.print('y\' = ' .. equation_2, 60, 100, 0, 1)
+  love.graphics.print('t = '.. t_text .. '\t\t\t\t\t\t\tscale ' .. tostring(SCALE) .. 'x', 60, 180, 0, 1)
+  --love.graphics.print("scale " .. tostring(SCALE) .. "x", 450, 180, 0, 1)
+  love.graphics.print("speed " .. speed_text, 60, 250, 0, 1)
 end
 
+function create_options_window()
+  local opts
+  if window_width < 1200 then
+    opts = {X = window_width * 0.75}
+  else
+    opts = {X = window_width * 0.85}
+  end
+  slab.BeginWindow('optionsWindow', opts)
+
+  if slab.CheckBox(options.colour, 'colour', {Size = 40}) then
+    options.colour = not options.colour
+  end
+
+  if slab.CheckBox(options.trails, 'trails', {Size = 40}) then
+    options.trails = not options.trails
+  end
+
+  if slab.CheckBox(options.show_text, 'debug text', {Size = 40}) then
+    options.show_text = not options.show_text
+  end
+
+  if slab.CheckBox(not options.dynamic_scaling, 'constant time', {Size = 40}) then
+    options.interest_scaling = not options.dynamic_scaling
+    options.dynamic_scaling  = not options.dynamic_scaling
+  end
+
+  slab.Text('point size')
+  if slab.InputNumberSlider('pointSizeSlider', options.point_size, 1, 5, {Precision = 1}) then
+    options.point_size = slab.GetInputText()
+  end
+
+  slab.Text('time step')
+  if slab.InputNumberSlider('timeStepSlider', options.step * 100, 1, 10, {Precision = 0}) then
+    options.step = slab.GetInputText() / 100
+  end
+
+  slab.Text('scale factor')
+  if slab.InputNumberSlider('scaleSlider', options.scale_factor, 1, 3, {Precision = 1}) then
+    options.scale_factor = slab.GetInputText()
+    love.resize(window_width, window_height)
+  end
+
+  slab.EndWindow()
+end
 
 function love.draw()
   if PAUSED then
-    love.graphics.draw(canv1)
+    love.graphics.translate(cam_x, cam_y)
+    love.graphics.draw(canv1, 0, 0, 0, options.scale_factor)
+    love.graphics.origin()
     draw_text()
+    slab.Draw()
     return
   end
+
 
   love.graphics.setCanvas(canv1)
   love.graphics.setBlendMode("alpha", "alphamultiply")
 
+
   if options.trails then
-    love.graphics.draw(canvbg)
+    love.graphics.draw(canvbg, 0, 0, 0, options.scale_factor)
     love.graphics.setBlendMode("add", "premultiplied")
   else
     love.graphics.clear(0, 0, 0)
@@ -150,8 +272,12 @@ function love.draw()
   love.graphics.setColor(1, 1, 1)
   love.graphics.setBlendMode("alpha", "alphamultiply")
   love.graphics.setCanvas() -- send focus to the screen
-  love.graphics.draw(canv1)
+  love.graphics.translate(cam_x, cam_y)
+  love.graphics.draw(canv1, 0, 0, 0, options.scale_factor)
+  love.graphics.origin()
+
   draw_text()
+  slab.Draw()
 end
 
 -- helper function for solve(f, n) uses globals so lua's load()
@@ -229,7 +355,6 @@ the fraction of points on the screen and the area of screen covered
   local screen_root = (WIDTH * HEIGHT)^(1/3)
   local area_factor = area_root / screen_root
   local adjusted_area_factor = remap(area_factor, 0, 1, 2.0, 0.5)
-
   return count_multiplier * adjusted_area_factor
 end
 
@@ -254,19 +379,18 @@ high speed. it actually works quite well
   end
 
   local speed_fix = dynamic_speed_factor -- 1
-  if biggest_dist < 3 then
-    speed_fix = math.min(3 / biggest_dist, 10)
-  elseif biggest_dist > 50 then
-    speed_fix = math.max(80 / biggest_dist, 0.01)
+  if biggest_dist < (options.step * 60) then
+    speed_fix = math.min((options.step * 60) / biggest_dist, 10)
+  elseif biggest_dist > (options.step * 1000) then
+    speed_fix = math.max((options.step * 1600) / biggest_dist, 0.01)
   end
   dynamic_speed_factor = (dynamic_speed_factor * 0.95) + (speed_fix * 0.05)
   --print("biggest_dist", biggest_dist)
 end
 
 function plot_point(q) -- convert graph coords to screen coords
-  return {(q[1] * SCALE) + (WIDTH / 2), (q[2] * SCALE) + (HEIGHT / 2)}
+  return {(q[1] * SCALE) + (WIDTH / 2) + cam_x, (q[2] * SCALE) + (HEIGHT / 2) + cam_y}
 end
-
 
 
 function unique_colour(i) -- i <= 1000
@@ -335,6 +459,6 @@ function make_function()
   local func = 'return {' .. rules[1] .. ', ' .. rules[2] .. '}'
   --local func = 'return {custom x function, custom y function}'
   print("my_func", func)
+  table.insert(func_history, func)
   return func
 end
-
