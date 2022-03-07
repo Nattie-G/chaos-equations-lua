@@ -1,6 +1,6 @@
 # chaos-equations-lua  
 simple clone of hackerpoet's chaos equations https://github.com/HackerPoet/Chaos-Equations  
-written in lua and love2d the entire program is only about 300 lines of code  
+written in lua and love2d the entire program is about 500 lines of code  
 
 ## install/running  
 install love2d from their website https://love2d.org/  
@@ -16,12 +16,13 @@ clone this repo, cd into it and execute love in the folder
 
 z (zoom) fast-forward: go faster (mulitplier configurable in options)  
 x (slow) slow-forward: go slower (mulitplier configurable in options)  
-c (rewind)    rewind: hold c down to play the visualisation backwards  
-r (random)  equation: generate a new random equation and reset t  
-t (time)  reset time: reset t to -1.2  
-mouse wheel    scale: change the scale the equation is shown at
+c (rewind)     rewind: hold c down to play the visualisation backwards  
+b (back)      history: go back to the previous equation in history
+n (new)      equation: generate a new random equation and plays it 
+t (time)   reset time: reset t to watch the same equation again
+mouse wheel     scale: change the scale the equation is shown at
 
-## options  
+## options (configurable in source code / in game)
 trails:     true/false  whether to display a trail behind each point  
 colour:     true/false  when true generate a unique hue for each point. Otherwise use white  
 number:     integer     how many points to calculate and display. (recommended < 1000)  
@@ -33,3 +34,4 @@ show_text:  true/false  display debug text
 
 interest_scaling: true/false attempt to optimise play speed based by estimating how intereseting the current configuration on screen is  
 dynamic_scaling:  true/false optimise play speed based on the fastest moving point using a rolling multiplier
+constant_time: ingame toggle for the above two settings. when off t will progress at a constant rate
