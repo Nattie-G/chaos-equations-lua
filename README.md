@@ -1,6 +1,8 @@
 # chaos-equations-lua  
 simple clone of hackerpoet's chaos equations https://github.com/HackerPoet/Chaos-Equations  
 written in lua and love2d the entire program is about 500 lines of code  
+![demo-gif](./demo.gif)  
+sample recording of the software in action (gif compression has not been kind, and it actually looks much better)
 
 ## install/running  
 install love2d from their website https://love2d.org/  
